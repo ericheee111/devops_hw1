@@ -1,0 +1,37 @@
+pipeline { 
+    agent any 
+    stages { 
+        stage('Fetch') { 
+            steps { 
+                echo 'Fetching..' 
+                sh 'rm -rf ./*' 
+                sh 'git clone https://github.com/spring-projects/spring-petclinic.git' 
+            } 
+        } 
+        stage('Build') {
+            steps {
+                echo 'Building..'
+                sh 'cd spring-petclinic && ./mvnw package' 
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('mysonarqube') {
+                    echo 'Starting SonarQube analysis...'
+                    // Use withMaven to setup Maven from Jenkins configuration
+                    withMaven(maven: 'maven') {
+                        sh 'cd spring-petclinic && mvn clean verify sonar:sonar'
+                    }
+                    echo 'SonarQube analysis completed.'
+
+                }
+            }
+        }
+        stage('Deploy') { 
+            steps { 
+                echo 'Deploying....' 
+                sh 'cd spring-petclinic && java -jar target/*.jar' 
+            } 
+        } 
+    } 
+}
